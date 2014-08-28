@@ -139,7 +139,7 @@ describe JustOneLock do
         JustOneLock.filelock lockpath, timeout: 0.001 do
           answer = 0
         end
-      end.to raise_error(Timeout::Error)
+      end.to raise_error(JustOneLock::AlreadyLocked)
 
       expect(answer).to eq(42)
     end
