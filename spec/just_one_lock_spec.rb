@@ -9,25 +9,32 @@ describe JustOneLock do
     File.open(filename.to_s, 'w') { |f| f.write(contents) }
   end
 
-  def parallel(n = 2, templock = nil, &block)
-    Timeout::timeout(5) do
-      templock ||= Tempfile.new(['sample', '.lock'])
+  def dir_and_scope(lockpath)
+    path_segments = lockpath.split('/')
+    scope = path_segments.last
+    path_segments.delete scope
+    dir = path_segments.join('/')
+    [dir, scope]
+  end
 
+  def parallel(n = 2, lockpath: Tempfile.new(['sample', '.lock']).path, timeout: JustOneLock::DEFAULT_TIMEOUT, &block)
+    Timeout::timeout(5) do
+      dir, scope = dir_and_scope(lockpath)
       (1..n).map do
         Thread.new do
-          JustOneLock.filelock(templock, &block)
+          JustOneLock.prevent_multiple_executions(dir, scope, timeout: timeout, &block)
         end
       end.map(&:join)
     end
   end
 
-  def parallel_forks(n = 2, templock = nil, &block)
+  def parallel_forks(n = 2, lockpath: Tempfile.new(['sample', '.lock']).path, timeout: JustOneLock::DEFAULT_TIMEOUT, &block)
     Timeout::timeout(5) do
-      templock ||= Tempfile.new(['sample', '.lock'])
+      dir, scope = dir_and_scope(lockpath)
 
       (1..n).map do
         fork {
-          JustOneLock.filelock(templock, &block)
+          JustOneLock.prevent_multiple_executions(dir, scope, timeout: timeout, &block)
         }
       end.map do |pid|
         Process.waitpid(pid)
@@ -66,19 +73,18 @@ describe JustOneLock do
 
     parallel(2) do
       value = answer
-      sleep 0.1
+      sleep(JustOneLock::DEFAULT_TIMEOUT / 2)
       answer = value + 21
     end
 
     expect(answer).to eq(42)
   end
 
-  it 'handels high amount of concurrent tasks' do
+  it 'handles high amount of concurrent tasks' do
     answer = 0
 
     parallel(100) do
       value = answer
-      sleep 0.001
       answer = value + 1
     end
 
@@ -86,33 +92,29 @@ describe JustOneLock do
   end
 
   it 'creates lock file on disk during block execution' do
-    Dir.mktmpdir do |dir|
-      lockpath = File.join(dir, 'sample.lock')
-      parallel(2, lockpath) do
-        expect(File.exist?(lockpath)).to eq(true)
-      end
+    lockpath = Tempfile.new(['sample', '.lock']).path
+    parallel(2, lockpath: lockpath) do
+      expect(File.exist?(lockpath)).to eq(true)
     end
   end
 
   it 'runs in parallel without race condition' do
-    Dir.mktmpdir do |dir|
-      lockpath = File.join(dir, 'sample.lock')
+    lockpath = Tempfile.new(['sample', '.lock']).path
 
-      answer = 0
+    answer = 0
 
-      begin
-        JustOneLock.filelock(lockpath) do
-          raise '42'
-        end
-      rescue RuntimeError
-      end
-
+    begin
       JustOneLock.filelock(lockpath) do
-        answer += 42
+        raise '42'
       end
-
-      expect(answer).to eq(42)
+    rescue RuntimeError
     end
+
+    JustOneLock.filelock(lockpath) do
+      answer += 42
+    end
+
+    expect(answer).to eq(42)
   end
 
   it 'times out after specified number of seconds' do
@@ -153,7 +155,7 @@ describe JustOneLock do
 
       parallel_forks(6) do
         number = File.read('/tmp/number.txt').to_i
-        sleep 0.3
+        sleep(JustOneLock::DEFAULT_TIMEOUT / 100)
         write('/tmp/number.txt', (number + 7).to_s)
       end
 
@@ -165,46 +167,47 @@ describe JustOneLock do
     it 'should handle heavy forking' do
       write('/tmp/number.txt', '0')
 
-      parallel_forks(100) do
+      FORKS_NUMBER = 100
+      parallel_forks(FORKS_NUMBER, timeout: 1) do
         number = File.read('/tmp/number.txt').to_i
-        sleep 0.001
         write('/tmp/number.txt', (number + 1).to_s)
       end
 
       number = File.read('/tmp/number.txt').to_i
 
-      expect(number).to eq(100)
+      expect(number).to eq(FORKS_NUMBER)
     end
 
     it 'should unblock files when killing processes' do
+      lockpath = Tempfile.new(['sample', '.lock']).path
+      dir, scope = dir_and_scope(lockpath)
+
       Dir.mktmpdir do |dir|
-        lockpath = File.join(dir, 'sample.lock')
+        pid = fork {
+          JustOneLock.prevent_multiple_executions(dir, scope) do
+            sleep 10
+          end
+        }
 
-        Dir.mktmpdir do |dir|
-          pid = fork {
-            JustOneLock.filelock lockpath do
-              sleep 10
-            end
-          }
-
-          sleep 0.5
-
-          answer = 0
-
-          thread = Thread.new {
-            JustOneLock.filelock lockpath do
-              answer += 42
-            end
-          }
-
-          sleep 0.5
-
-          expect(answer).to eq(0)
-          Process.kill(9, pid)
-          thread.join
-
-          expect(answer).to eq(42)
+        Timeout::timeout(1) do
+          while !File.exist?(lockpath)
+            sleep 0.1
+          end
         end
+
+        answer = 0
+
+        thread = Thread.new {
+          JustOneLock.prevent_multiple_executions(dir, scope) do
+            answer += 42
+          end
+        }
+
+        expect(answer).to eq(0)
+        Process.kill(9, pid)
+        thread.join
+
+        expect(answer).to eq(42)
       end
     end
 
