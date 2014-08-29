@@ -77,7 +77,7 @@ shared_examples 'a locking object' do
         JustOneLock::Blocking.filelock lockpath, timeout: 0.001 do
           answer = 0
         end
-      end.to raise_error(JustOneLock::Blocking::AlreadyLocked)
+      end.to raise_error(JustOneLock::AlreadyLocked)
 
       expect(answer).to eq(42)
     end

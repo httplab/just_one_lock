@@ -2,7 +2,6 @@ require 'timeout'
 
 module JustOneLock::Blocking
   DEFAULT_TIMEOUT = 1
-  class AlreadyLocked < StandardError; end
 
   def self.filelock(
     lockname,
@@ -12,7 +11,7 @@ module JustOneLock::Blocking
   )
     result = nil
     File.open(lockname, File::RDWR|File::CREAT, 0644) do |f|
-      Timeout::timeout(timeout, JustOneLock::Blocking::AlreadyLocked) { f.flock(File::LOCK_EX) }
+      Timeout::timeout(timeout, JustOneLock::AlreadyLocked) { f.flock(File::LOCK_EX) }
 
       result = JustOneLock.run(f, lockname, &block)
     end
@@ -34,8 +33,8 @@ module JustOneLock::Blocking
 
     begin
       return filelock(lock_path, timeout: timeout, delete_files: delete_files, &block)
-    rescue JustOneLock::Blocking::AlreadyLocked => e
-      output.puts "Another process <#{scope}> already is running"
+    rescue JustOneLock::AlreadyLocked => e
+      JustOneLock.already_locked(output, scope)
     end
   end
 end

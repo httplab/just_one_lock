@@ -27,10 +27,10 @@ module JustOneLock::NonBlocking
     scope_name = scope.gsub(':', '_')
     lock_path = File.join(lock_dir, scope_name + '.lock')
 
-    was_executed = filelock(lock_path, delete_files: delete_files, &block)
-
-    unless was_executed
-      output.puts "Another process <#{scope}> already is running"
+    begin
+      return filelock(lock_path, delete_files: delete_files, &block)
+    rescue JustOneLock::AlreadyLocked => e
+      JustOneLock.already_locked(output, scope)
     end
   end
 end

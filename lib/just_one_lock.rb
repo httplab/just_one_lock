@@ -3,6 +3,8 @@ require 'just_one_lock/blocking'
 require 'just_one_lock/non_blocking'
 
 module JustOneLock
+  class AlreadyLocked < StandardError; end
+
   class NullStream
     class << self
       def puts(str); end
@@ -28,6 +30,12 @@ module JustOneLock
 
   def self.lock_paths
     @files.keys
+  end
+
+  def self.already_locked(output, scope)
+    msg = "Another process <#{scope}> already is running"
+    output.puts msg
+    raise JustOneLock::AlreadyLocked, msg
   end
 
   private
