@@ -9,6 +9,8 @@ module JustOneLock::NonBlocking
     File.open(lockname, File::RDWR|File::CREAT, 0644) do |f|
       if f.flock(File::LOCK_NB|File::LOCK_EX)
         result = JustOneLock.run(f, lockname, &block)
+      else
+        fail JustOneLock::AlreadyLocked
       end
     end
 
