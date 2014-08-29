@@ -1,33 +1,36 @@
 require 'just_one_lock/version'
-require 'timeout'
+require 'just_one_lock/blocking'
+require 'just_one_lock/non_blocking'
 
 module JustOneLock
-  DEFAULT_TIMEOUT = 0.01
-  class AlreadyLocked < StandardError; end
-
   class NullStream
     class << self
       def puts(str); end
-      def <<(o); self; end
     end
   end
 
-  def self.filelock(lockname, timeout: JustOneLock::DEFAULT_TIMEOUT, &block)
-    File.open(lockname, File::RDWR|File::CREAT, 0644) do |file|
-      Timeout::timeout(timeout, JustOneLock::AlreadyLocked) { file.flock(File::LOCK_EX) }
+  @files = {}
 
-      yield
+  def self.delete_unlocked_files
+    @files.each do |path, f|
+      if File.exists?(path) && f.closed?
+        File.delete(path) rescue nil
+      end
     end
   end
 
-  def self.prevent_multiple_executions(lock_dir, scope, output: JustOneLock::NullStream, timeout: JustOneLock::DEFAULT_TIMEOUT, &block)
-    scope_name = scope.gsub(':', '_')
-    lock_path = File.join(lock_dir, scope_name + '.lock')
+  private
 
-    begin
-      return filelock(lock_path, timeout: timeout, &block)
-    rescue JustOneLock::AlreadyLocked => e
-      output.puts "Another process <#{scope}> already is running"
-    end
+  def self.write_pid(f)
+    f.rewind
+    f.write(Process.pid)
+    f.flush
+    f.truncate(f.pos)
+  end
+
+  def self.run(f, lockname, &block)
+    @files[lockname] = f
+    write_pid(f)
+    block.call
   end
 end
