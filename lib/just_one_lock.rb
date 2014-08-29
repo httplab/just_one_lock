@@ -12,10 +12,17 @@ module JustOneLock
   @files = {}
 
   def self.delete_unlocked_files
+    paths_to_delete = []
+
     @files.each do |path, f|
       if File.exists?(path) && f.closed?
-        File.delete(path) rescue nil
+        paths_to_delete << path
       end
+    end
+
+    paths_to_delete.each do |path|
+      File.delete(path)
+      @files.delete(path)
     end
   end
 
