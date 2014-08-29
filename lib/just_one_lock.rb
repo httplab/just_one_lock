@@ -26,6 +26,10 @@ module JustOneLock
     end
   end
 
+  def self.lock_paths
+    @files.keys
+  end
+
   private
 
   def self.write_pid(f)
