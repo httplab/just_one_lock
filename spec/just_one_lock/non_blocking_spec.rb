@@ -11,7 +11,7 @@ describe JustOneLock::NonBlocking do
       dir, scope = dir_and_scope(lockpath)
       (1..n).map do
         Thread.new do
-          JustOneLock::Blocking.prevent_multiple_executions(dir, scope, delete_files: false, &block)
+          JustOneLock::NonBlocking.prevent_multiple_executions(dir, scope, delete_files: false, &block)
         end
       end.map(&:join)
     end
@@ -25,7 +25,7 @@ describe JustOneLock::NonBlocking do
 
       (1..n).map do
         fork {
-          JustOneLock::Blocking.prevent_multiple_executions(dir, scope, delete_files: false, &block)
+          JustOneLock::NonBlocking.prevent_multiple_executions(dir, scope, delete_files: false, &block)
         }
       end.map do |pid|
         Process.waitpid(pid)

@@ -21,12 +21,13 @@ module JustOneLock::NonBlocking
     lock_dir,
     scope,
     output: JustOneLock::NullStream,
+    delete_files: true,
     &block
   )
     scope_name = scope.gsub(':', '_')
     lock_path = File.join(lock_dir, scope_name + '.lock')
 
-    was_executed = filelock(lock_path, &block)
+    was_executed = filelock(lock_path, delete_files: delete_files, &block)
 
     unless was_executed
       output.puts "Another process <#{scope}> already is running"

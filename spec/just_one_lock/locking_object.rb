@@ -27,18 +27,6 @@ shared_examples 'a locking object' do
     end
   end
 
-  it 'runs in parallel without race condition' do
-    answer = 0
-
-    parallel(2) do
-      value = answer
-      sleep(JustOneLock::Blocking::DEFAULT_TIMEOUT / 2)
-      answer = value + 21
-    end
-
-    expect(answer).to eq(42)
-  end
-
   it 'creates lock file on disk during block execution' do
     lockpath = Tempfile.new(['sample', '.lock']).path
     parallel(2, lockpath: lockpath) do

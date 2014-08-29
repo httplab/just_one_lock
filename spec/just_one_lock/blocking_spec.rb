@@ -40,7 +40,7 @@ describe JustOneLock::Blocking do
     it 'should work for multiple processes' do
       write('/tmp/number.txt', '0')
 
-      parallel_forks(6, timeout: 10) do
+      parallel_forks(6) do
         number = File.read('/tmp/number.txt').to_i
         sleep(JustOneLock::Blocking::DEFAULT_TIMEOUT / 100)
         write('/tmp/number.txt', (number + 7).to_s)
@@ -55,7 +55,7 @@ describe JustOneLock::Blocking do
       write('/tmp/number.txt', '0')
 
       FORKS_NUMBER = 100
-      parallel_forks(FORKS_NUMBER, timeout: 10) do
+      parallel_forks(FORKS_NUMBER) do
         number = File.read('/tmp/number.txt').to_i
         write('/tmp/number.txt', (number + 1).to_s)
       end
@@ -64,17 +64,29 @@ describe JustOneLock::Blocking do
 
       expect(number).to eq(FORKS_NUMBER)
     end
+  end
 
-    it 'handles high amount of concurrent tasks' do
-      answer = 0
+  it 'runs in parallel without race condition' do
+    answer = 0
 
-      parallel(100, timeout: JustOneLock::Blocking::DEFAULT_TIMEOUT * 10) do
-        value = answer
-        answer = value + 1
-      end
-
-      expect(answer).to eq(100)
+    parallel(2) do
+      value = answer
+      sleep(JustOneLock::Blocking::DEFAULT_TIMEOUT / 2)
+      answer = value + 21
     end
+
+    expect(answer).to eq(42)
+  end
+
+  it 'handles high amount of concurrent tasks' do
+    answer = 0
+
+    parallel(100) do
+      value = answer
+      answer = value + 1
+    end
+
+    expect(answer).to eq(100)
   end
 end
 
