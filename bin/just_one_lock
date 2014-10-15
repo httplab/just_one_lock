@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+
+require 'gli'
+require_relative '../lib/just_one_lock/version'
+
+include GLI::App
+
+@subcommand_option_handling_strategy = :normal
+
+program_desc 'Just one lock runner'
+version JustOneLock::VERSION
+flag [:c,:config], default_value: '.insup'
+
+flag [:c,:config], default_value: '.insup'
+switch [:v,:verbose], desc: 'Be verbose'
+switch [:d, :debug], desc: 'Dump debug information upon error'
+
+pre do |global_options, command, options, args|
+  raise command.inspect
+  lock_dir = global_options[:lock_dir]
+  scope = global_options[:scope]
+  debug = global_options[:debug]
+  ENV['GLI_DEBUG'] = 'true' if debug
+  Insup::Console.start(settings_file, verbose, debug)
+
+  JustOneLock::NonBlocking.prevent_multiple_executions(lock_dir, scope, output: $stdout) do
+    system command_to_run
+  end
+end

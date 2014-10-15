@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    just_one_lock (0.0.5)
+    just_one_lock (0.0.6)
 
 GEM
   remote: https://rubygems.org/
