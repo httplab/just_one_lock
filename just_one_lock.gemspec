@@ -6,7 +6,7 @@ require 'just_one_lock/version'
 Gem::Specification.new do |spec|
   spec.name          = "just_one_lock"
   spec.version       = JustOneLock::VERSION
-  spec.authors       = ["Adam Stankiewicz, Yury Kotov"]
+  spec.authors       = ["Yury Kotov"]
   spec.email         = ["bairkan@gmail.com"]
   spec.description   = %q{Simple solution to prevent multiple executions using flock}
   spec.summary       = %q{Simple solution to prevent multiple executions using flock}
@@ -21,4 +21,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "bundler", "~> 1.3"
   spec.add_development_dependency "rake", '~> 10.3'
   spec.add_development_dependency "rspec", '~> 3.0'
+  spec.add_dependency 'gli', '~> 2.11'
 end
