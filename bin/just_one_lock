@@ -12,42 +12,29 @@ version JustOneLock::VERSION
 
 flag [:l,:lock_dir], default_value: '/tmp'
 flag [:s,:scope]
-
-pre do |global_options, command, options, args|
-  $lock_dir = global_options[:lock_dir]
-  $scope = global_options[:scope]
-  $command_to_run = args.first
-end
-
-desc 'Execute system command using blocking lock'
-command :blocking do |c|
-  c.flag [:t,:timeout], desc: 'Timeout in seconds'
-
-  c.action do |global_options, options, args|
-    timeout = options[:timeout]
-    timeout = timeout.to_i if timeout
-
-    JustOneLock::Blocking.prevent_multiple_executions(
-      $lock_dir,
-      $scope,
-      output: $stdout,
-      timeout: timeout
-    ) do
-      system $command_to_run
-    end
-  end
-end
+flag [:t,:timeout], desc: 'Timeout in seconds'
 
 desc 'Execute system command'
-command :non_blocking do |c|
+command :exec do |c|
   c.action do |global_options, options, args|
-    JustOneLock::NonBlocking.prevent_multiple_executions($lock_dir, $scope, output: $stdout) do
-      system $command_to_run
+    JustOneLock.world.directory = global_options[:lock_dir]
+    scope = global_options[:scope]
+    timeout = global_options[:timeout].to_f
+    command_to_run = args.first
+
+    if timeout > 0
+      locker = JustOneLock::BlockingLocker.new(timeout: timeout)
+    else
+      locker = JustOneLock::NonBlockingLocker.new
+    end
+
+    JustOneLock::prevent_multiple_executions(locker, scope) do
+      system command_to_run
     end
   end
 end
 
-default_command :non_blocking
+default_command :exec
 
 exit run(ARGV)
 

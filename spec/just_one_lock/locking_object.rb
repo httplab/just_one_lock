@@ -6,7 +6,7 @@ shared_examples 'a locking object' do
       lockpath = File.join(lock_dir, 'sample.lock')
       answer = 0
 
-      JustOneLock::Blocking.filelock lockpath do
+      locker.lock lockpath do
         answer += 42
       end
 
@@ -19,7 +19,7 @@ shared_examples 'a locking object' do
       lockpath = File.join(lock_dir, 'sample.lock')
       answer = 0
 
-      answer = JustOneLock::Blocking.filelock lockpath do
+      answer = locker.lock lockpath do
         42
       end
 
@@ -40,13 +40,13 @@ shared_examples 'a locking object' do
     answer = 0
 
     begin
-      JustOneLock::Blocking.filelock(lockpath) do
+      locker.lock(lockpath) do
         raise '42'
       end
     rescue RuntimeError
     end
 
-    JustOneLock::Blocking.filelock(lockpath) do
+    locker.lock(lockpath) do
       answer += 42
     end
 
@@ -61,7 +61,7 @@ shared_examples 'a locking object' do
       locked = false
 
       Thread.new do
-        JustOneLock::Blocking.filelock lockpath do
+        locker.lock lockpath do
           locked = true
           sleep 20
         end
@@ -74,7 +74,7 @@ shared_examples 'a locking object' do
       end
 
       expect do
-        JustOneLock::Blocking.filelock lockpath, timeout: 0.001 do
+        locker.lock lockpath do
           answer = 0
         end
       end.to raise_error(JustOneLock::AlreadyLocked)
@@ -91,7 +91,7 @@ shared_examples 'a locking object' do
       dir, scope = dir_and_scope(lockpath)
 
       pid = fork {
-        JustOneLock::Blocking.prevent_multiple_executions(lock_dir, scope) do
+        JustOneLock::prevent_multiple_executions(locker, scope) do
           sleep 10
         end
       }
@@ -105,7 +105,7 @@ shared_examples 'a locking object' do
       answer = 0
 
       thread = Thread.new {
-        JustOneLock::Blocking.prevent_multiple_executions(dir, scope) do
+        JustOneLock::prevent_multiple_executions(locker, scope) do
           answer += 42
         end
       }
@@ -122,7 +122,7 @@ shared_examples 'a locking object' do
         lockpath = Pathname.new(File.join(lock_dir, 'sample.lock'))
 
         answer = 0
-        JustOneLock::Blocking.filelock lockpath do
+        locker.lock lockpath do
           answer += 42
         end
 
@@ -135,7 +135,7 @@ shared_examples 'a locking object' do
   it 'works for Tempfile' do
     answer = 0
 
-    JustOneLock::Blocking.filelock Tempfile.new(['sample', '.lock']) do
+    locker.lock Tempfile.new(['sample', '.lock']) do
       answer += 42
     end
 
@@ -146,7 +146,7 @@ shared_examples 'a locking object' do
   it 'creates file with exact path provided' do
     filename = "/tmp/awesome-lock-#{rand}.lock"
 
-    JustOneLock::Blocking.filelock filename, delete_files: false do
+    locker.lock filename do
     end
 
     expect(File.exist?(filename)).to eq(true)

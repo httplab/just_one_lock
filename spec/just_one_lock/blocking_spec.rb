@@ -3,37 +3,9 @@ require 'tempfile'
 require 'timeout'
 require 'just_one_lock/locking_object'
 
-describe JustOneLock::Blocking do
+describe JustOneLock::BlockingLocker do
+  let(:locker) { JustOneLock::BlockingLocker.new }
   it_behaves_like 'a locking object'
-
-  def parallel(n = 2, lockpath: Tempfile.new(['sample', '.lock']).path, timeout: JustOneLock::Blocking::DEFAULT_TIMEOUT, &block)
-    Timeout::timeout(5) do
-      dir, scope = dir_and_scope(lockpath)
-      (1..n).map do
-        Thread.new do
-          JustOneLock::Blocking.prevent_multiple_executions(dir, scope, timeout: timeout, delete_files: false, &block)
-        end
-      end.map(&:join)
-    end
-
-    JustOneLock.delete_unlocked_files
-  end
-
-  def parallel_forks(n = 2, lockpath: Tempfile.new(['sample', '.lock']).path, timeout: JustOneLock::Blocking::DEFAULT_TIMEOUT, &block)
-    Timeout::timeout(5) do
-      dir, scope = dir_and_scope(lockpath)
-
-      (1..n).map do
-        fork {
-          JustOneLock::Blocking.prevent_multiple_executions(dir, scope, timeout: timeout, delete_files: false, &block)
-        }
-      end.map do |pid|
-        Process.waitpid(pid)
-      end
-    end
-
-    JustOneLock.delete_unlocked_files
-  end
 
   # Java doesn't support forking
   if RUBY_PLATFORM != 'java'
@@ -42,7 +14,7 @@ describe JustOneLock::Blocking do
 
       parallel_forks(6) do
         number = File.read('/tmp/number.txt').to_i
-        sleep(JustOneLock::Blocking::DEFAULT_TIMEOUT / 100)
+        sleep(0.1)
         write('/tmp/number.txt', (number + 7).to_s)
       end
 
@@ -71,7 +43,7 @@ describe JustOneLock::Blocking do
 
     parallel(2) do
       value = answer
-      sleep(JustOneLock::Blocking::DEFAULT_TIMEOUT / 2)
+      sleep(0.5)
       answer = value + 21
     end
 
