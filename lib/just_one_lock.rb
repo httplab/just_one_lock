@@ -10,7 +10,7 @@ module JustOneLock
 
   class << self
     extend ::Forwardable
-    def_delegators :world, :before_lock, :after_lock, :delete_unlocked_files
+    def_delegators :world, :before_lock, :after_lock, :delete_unlocked_files, :puts
   end
 
   def self.world

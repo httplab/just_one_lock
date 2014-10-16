@@ -38,5 +38,4 @@ class JustOneLock::World
   def puts(*args)
     output.puts(*args)
   end
-
 end
