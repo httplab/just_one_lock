@@ -28,7 +28,7 @@ command :exec do |c|
       locker = JustOneLock::NonBlockingLocker.new
     end
 
-    JustOneLock::prevent_multiple_executions(locker, scope) do
+    JustOneLock::prevent_multiple_executions(scope, locker) do
       system command_to_run
     end
   end
