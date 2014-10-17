@@ -18,7 +18,7 @@ def parallel(n = 2, lockpath: Tempfile.new(['sample', '.lock']).path, &block)
 
     (1..n).map do
       Thread.new do
-        JustOneLock::prevent_multiple_executions(locker, scope, &block)
+        JustOneLock::prevent_multiple_executions(scope, locker, &block)
       end
     end.map(&:join)
   end
@@ -33,7 +33,7 @@ def parallel_forks(n = 2, lockpath: Tempfile.new(['sample', '.lock']).path, &blo
 
     (1..n).map do
       fork {
-        JustOneLock::prevent_multiple_executions(locker, scope, &block)
+        JustOneLock::prevent_multiple_executions(scope, locker, &block)
       }
     end.map do |pid|
       Process.waitpid(pid)

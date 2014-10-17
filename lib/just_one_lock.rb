@@ -18,8 +18,8 @@ module JustOneLock
   end
 
   def self.prevent_multiple_executions(
-    locker,
     scope,
+    locker = JustOneLock::NonBlockingLocker.new,
     &block
   )
     scope_name = scope.gsub(':', '_')

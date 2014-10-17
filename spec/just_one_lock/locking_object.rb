@@ -91,7 +91,7 @@ shared_examples 'a locking object' do
       dir, scope = dir_and_scope(lockpath)
 
       pid = fork {
-        JustOneLock::prevent_multiple_executions(locker, scope) do
+        JustOneLock::prevent_multiple_executions(scope, locker) do
           sleep 10
         end
       }
@@ -105,7 +105,7 @@ shared_examples 'a locking object' do
       answer = 0
 
       thread = Thread.new {
-        JustOneLock::prevent_multiple_executions(locker, scope) do
+        JustOneLock::prevent_multiple_executions(scope, locker) do
           answer += 42
         end
       }
