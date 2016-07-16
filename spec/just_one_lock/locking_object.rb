@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'spec_helper'
 
 shared_examples 'a locking object' do
@@ -17,7 +18,6 @@ shared_examples 'a locking object' do
   it 'returns value returned by block' do
     Dir.mktmpdir do |lock_dir|
       lockpath = File.join(lock_dir, 'sample.lock')
-      answer = 0
 
       answer = locker.lock lockpath do
         42
@@ -67,10 +67,8 @@ shared_examples 'a locking object' do
         end
       end
 
-      Timeout::timeout(1) do
-        while locked == false
-          sleep 0.1
-        end
+      Timeout.timeout(1) do
+        sleep 0.1 while locked == false
       end
 
       expect do
@@ -88,27 +86,25 @@ shared_examples 'a locking object' do
 
     it 'should unblock files when killing processes' do
       lockpath = Tempfile.new(['sample', '.lock']).path
-      dir, scope = dir_and_scope(lockpath)
+      _dir, scope = dir_and_scope(lockpath)
 
-      pid = fork {
-        JustOneLock::prevent_multiple_executions(scope, locker) do
+      pid = fork do
+        JustOneLock.prevent_multiple_executions(scope, locker) do
           sleep 10
         end
-      }
+      end
 
-      Timeout::timeout(1) do
-        while !File.exist?(lockpath)
-          sleep 0.1
-        end
+      Timeout.timeout(1) do
+        sleep 0.1 until File.exist?(lockpath)
       end
 
       answer = 0
 
-      thread = Thread.new {
-        JustOneLock::prevent_multiple_executions(scope, locker) do
+      thread = Thread.new do
+        JustOneLock.prevent_multiple_executions(scope, locker) do
           answer += 42
         end
-      }
+      end
 
       expect(answer).to eq(0)
       Process.kill(9, pid)
@@ -152,5 +148,3 @@ shared_examples 'a locking object' do
     expect(File.exist?(filename)).to eq(true)
   end
 end
-
-

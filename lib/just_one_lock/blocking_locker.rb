@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'timeout'
 
 class JustOneLock::BlockingLocker < JustOneLock::BaseLocker
@@ -12,8 +13,8 @@ class JustOneLock::BlockingLocker < JustOneLock::BaseLocker
   def lock(lock_path, &block)
     result = nil
 
-    File.open(lock_path, File::RDWR|File::CREAT, 0644) do |f|
-      Timeout::timeout(@timeout, JustOneLock::AlreadyLocked) { f.flock(File::LOCK_EX) }
+    File.open(lock_path, File::RDWR | File::CREAT, 0o644) do |f|
+      Timeout.timeout(@timeout, JustOneLock::AlreadyLocked) { f.flock(File::LOCK_EX) }
 
       result = run(f, lock_path, &block)
     end
@@ -21,4 +22,3 @@ class JustOneLock::BlockingLocker < JustOneLock::BaseLocker
     result
   end
 end
-

@@ -1,9 +1,11 @@
+# frozen_string_literal: true
 require 'just_one_lock/version'
 require 'just_one_lock/world'
 require 'just_one_lock/base_locker'
 require 'just_one_lock/blocking_locker'
 require 'just_one_lock/non_blocking_locker'
 require 'forwardable'
+require 'pathname'
 
 module JustOneLock
   class AlreadyLocked < StandardError; end
@@ -22,7 +24,7 @@ module JustOneLock
     locker = JustOneLock::NonBlockingLocker.new,
     &block
   )
-    scope_name = scope.gsub(':', '_')
+    scope_name = scope.tr(':', '_')
     lock_path = File.join(world.directory, scope_name + '.lock')
 
     begin
@@ -32,4 +34,3 @@ module JustOneLock
     end
   end
 end
-

@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 require 'gli'
 require_relative '../lib/just_one_lock'
@@ -10,25 +11,25 @@ include GLI::App
 program_desc 'Just one lock runner'
 version JustOneLock::VERSION
 
-flag [:l,:lock_dir], default_value: '/tmp'
-flag [:s,:scope]
-flag [:t,:timeout], desc: 'Timeout in seconds'
+flag [:l, :lock_dir], default_value: '/tmp'
+flag [:s, :scope]
+flag [:t, :timeout], desc: 'Timeout in seconds'
 
 desc 'Execute system command'
 command :exec do |c|
-  c.action do |global_options, options, args|
+  c.action do |global_options, _options, args|
     JustOneLock.world.directory = global_options[:lock_dir]
     scope = global_options[:scope]
     timeout = global_options[:timeout].to_f
     command_to_run = args.first
 
-    if timeout > 0
-      locker = JustOneLock::BlockingLocker.new(timeout: timeout)
-    else
-      locker = JustOneLock::NonBlockingLocker.new
-    end
+    locker = if timeout > 0
+               JustOneLock::BlockingLocker.new(timeout: timeout)
+             else
+               JustOneLock::NonBlockingLocker.new
+             end
 
-    JustOneLock::prevent_multiple_executions(scope, locker) do
+    JustOneLock.prevent_multiple_executions(scope, locker) do
       system command_to_run
     end
   end
@@ -37,4 +38,3 @@ end
 default_command :exec
 
 exit run(ARGV)
-

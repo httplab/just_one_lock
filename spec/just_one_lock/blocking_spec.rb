@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'just_one_lock'
 require 'tempfile'
 require 'timeout'
@@ -61,4 +62,3 @@ describe JustOneLock::BlockingLocker do
     expect(answer).to eq(100)
   end
 end
-

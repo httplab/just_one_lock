@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 class JustOneLock::BaseLocker
   def already_locked(scope)
     msg = "Another process <#{scope}> already is running"
@@ -14,14 +15,13 @@ class JustOneLock::BaseLocker
     f.truncate(f.pos)
   end
 
-  def run(f, path, &block)
+  def run(f, path)
     write_pid(f)
 
     JustOneLock.before_lock(path, f)
-    result = block.call
+    result = yield
     JustOneLock.after_lock(path, f)
 
     result
   end
 end
-

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 class JustOneLock::World
   attr_accessor :output, :directory, :delete_files
 
@@ -12,9 +13,7 @@ class JustOneLock::World
     paths_to_delete = []
 
     @files.each do |path, f|
-      if File.exists?(path) && f.closed?
-        paths_to_delete << path
-      end
+      paths_to_delete << path if File.exist?(path) && f.closed?
     end
 
     paths_to_delete.each do |path|
@@ -27,7 +26,7 @@ class JustOneLock::World
     @files[name] = file
   end
 
-  def after_lock(name, file)
+  def after_lock(_name, _file)
     delete_unlocked_files if delete_files
   end
 
